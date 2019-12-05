@@ -10,7 +10,9 @@ import L from 'leaflet'
 
 function App() {
   return (
-    <MapComp/>   
+    <div>
+      <MapComp/>
+    </div>
   );
 }
 
