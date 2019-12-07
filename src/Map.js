@@ -5,8 +5,8 @@ import L, { marker } from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 import { Button, Statistic, Tag, Drawer, Input } from "antd";
-
 import SettingsDrawer from "./Drawers/SettingsDrawer";
+import MarkerDrawer from "./Drawers/MarkerDrawer";
 
 delete L.Icon.Default.prototype._getIconUrl;
 
@@ -28,31 +28,6 @@ class MapComp extends Component {
     selectedPosition: null
   };
 
-  // İlgili Fonksiyonları buraya yazacaksın
-  // Markers dizisinde tutuluyor değerler
-  // Distance toplam uzunluk km cinsinden
-  // this.state.markers
-  // this.state.distance
-  // Güncellerken this.setState({markers: ... , distance ...}) state güncellemesine bakabilirsin react
-
-  controlOverlaps = () => {
-    const { markers } = this.state;
-
-    if (markers.length > 0) {
-      let distance = this.distance(
-        markers[markers.length - 1][0],
-        markers[markers.length - 1][1],
-        markers[markers.length - 2][0],
-        markers[markers.length - 2][1],
-        "K"
-      );
-
-      console.log("controlOverlaps", distance);
-    } else {
-      alert("Markers can not be empty!");
-    }
-  };
-
   showMarkersDrawer = position => {
     this.setState({
       markerDrawerVisible: true,
@@ -60,9 +35,21 @@ class MapComp extends Component {
     });
   };
 
+  showSettingsDrawer = () => {
+    this.setState({
+      settingsDrawerVisible: true
+    });
+  };
+
   closeMarkerDrawer = () => {
     this.setState({
       markerDrawerVisible: false
+    });
+  };
+
+  closeSettingsDrawer = () => {
+    this.setState({
+      settingsDrawerVisible: false
     });
   };
 
@@ -148,7 +135,7 @@ class MapComp extends Component {
                 onClick={() => this.showMarkersDrawer(position)}
               />
             ))}
-            {this.state.markers.map((position, idx) =>
+            {/* {this.state.markers.map((position, idx) =>
               this.state.markers[idx + 1] ? (
                 <Polyline
                   key={idx}
@@ -159,7 +146,7 @@ class MapComp extends Component {
                   color={"red"}
                 ></Polyline>
               ) : null
-            )}
+            )} */}
             <Control position="topleft">
               <Tag color="purple">
                 <Statistic
@@ -184,10 +171,7 @@ class MapComp extends Component {
               >
                 MISSIONS
               </Button>
-              <Button
-                size="large"
-                onClick={() => {alert("SHOW SettingsDrawer")}}
-              >
+              <Button size="large" onClick={this.showSettingsDrawer}>
                 SETTINGS
               </Button>
               <Button
@@ -199,34 +183,24 @@ class MapComp extends Component {
                 HELP
               </Button>
 
-              <Button size="large" onClick={() => this.controlOverlaps()}>
-                CONTROL OVERLAPS
+              <Button size="large" onClick={() => console.log(this.state.markers)}>
+                PRINT MARKERS
               </Button>
             </Control>
           </Map>
         </div>
 
-        <Drawer
-          title="Marker"
-          placement="right"
-          closable={true}
-          onClose={this.closeMarkerDrawer}
+        <MarkerDrawer
+          close={this.closeMarkerDrawer}
           visible={this.state.markerDrawerVisible}
-        >
-          {this.state.selectedPosition ? (
-            <div>
-              <Tag color="purple">Lat: {this.state.selectedPosition[0]}</Tag>
-              <Tag color="purple">Lng: {this.state.selectedPosition[1]}</Tag>
-            </div>
-          ) : null}
-          <Button
-            shape="circle"
-            icon="delete"
-            onClick={() => this.deleteMarker(this.state.selectedPosition)}
-          ></Button>
-        </Drawer>
+          deleteMarker={this.deleteMarker}
+          selectedPosition={this.state.selectedPosition}
+        />
 
-        <SettingsDrawer />
+        <SettingsDrawer
+          close={this.closeSettingsDrawer}
+          visible={this.state.settingsDrawerVisible}
+        />
       </div>
     );
   }

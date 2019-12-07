@@ -17,18 +17,14 @@ class SettingsDrawer extends Component {
     heightAboveVisualPlane: 43 // given in meters
   };
 
-  close = ()=>{
-      alert("CLOSE SettingsDrawer");
-  }
-
   render() {
     return (
       <Drawer
         title="Settings"
         placement="left"
         closable={true}
-        onClose={this.close}
-        visible={true}
+        onClose={this.props.close}
+        visible={this.props.visible}
       >
         <Input
           addonBefore="Rs"
