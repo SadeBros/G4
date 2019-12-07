@@ -68,10 +68,10 @@ class MapComp extends Component {
       );
     }
 
-    console.log("new_dist", new_dist);
+    // console.log("new_dist", new_dist);
     markers.push([lat, lng]);
     this.setState({ markers, distance: new_dist });
-    console.log(this.state.markers);
+    // console.log(this.state.markers);
   };
 
   // Distance Güncellenecek
