@@ -14,8 +14,8 @@ class MarkerDrawer extends Component {
       >
         {this.props.selectedPosition ? (
             <div>
-              <Tag color="purple">Lat: {this.props.selectedPosition[0]}</Tag>
-              <Tag color="purple">Lng: {this.props.selectedPosition[1]}</Tag>
+              <Tag color="purple">Lat: {this.props.selectedPosition["lat"]}</Tag>
+              <Tag color="purple">Lng: {this.props.selectedPosition["lng"]}</Tag>
             </div>
           ) : null}
 
