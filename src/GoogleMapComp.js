@@ -7,7 +7,7 @@ import {
 } from "react-google-maps";
 
 import MarkerDrawer from "./Drawers/MarkerDrawer";
-import { Button } from "antd";
+import { Button, Modal, Input, message } from "antd";
 import axios from "axios";
 
 class Map extends Component {
@@ -15,10 +15,11 @@ class Map extends Component {
     markers: [],
     selectedPosition: null,
     markerDrawerVisible: false,
+    saveFileModalVisible: false,
+    textFileName: "",
     textFileContent: null,
     waitingForFileUpload: false
   };
-
 
   addMarker = event => {
     const markers = [...this.state.markers];
@@ -50,6 +51,14 @@ class Map extends Component {
     });
   };
 
+  showSaveFileModal = () => {
+    this.setState({ saveFileModalVisible: true });
+  };
+
+  closeSaveFileModal = () => {
+    this.setState({ saveFileModalVisible: false });
+  };
+
   static readUploadedFileAsText = inputFile => {
     const temporaryFileReader = new FileReader();
 
@@ -79,6 +88,7 @@ class Map extends Component {
 
     // Uploads will push to the file input's `.files` array. Get the last uploaded file.
     const latestUploadedFile = fileList.item(fileList.length - 1);
+    this.setState({textFileName: latestUploadedFile.name.replace('.txt', '')});
 
     try {
       const fileContents = await Map.readUploadedFileAsText(latestUploadedFile);
@@ -86,7 +96,7 @@ class Map extends Component {
         textFileContent: fileContents,
         waitingForFileUpload: false
       });
-      this.updateMarkers();
+      this.readMarkersFromFile();
     } catch (e) {
       console.log(e);
       this.setState({
@@ -95,7 +105,7 @@ class Map extends Component {
     }
   };
 
-  updateMarkers = () => {
+  readMarkersFromFile = () => {
     const content = this.state.textFileContent;
     const coordinates = content
       .split("\n")
@@ -111,19 +121,32 @@ class Map extends Component {
   };
 
   saveFileHandler = async () => {
-
     const markers = [...this.state.markers];
+    const textFileName = this.state.textFileName;
     axios
-      .post(`http://localhost:5000`, {markers})
-      .then(res => console.log(res, res.data))
-      .then(() => console.log('Book Created'));
+      .post(`http://localhost:5000`, { markers, textFileName })
+      .then(res => console.log(res, res.data));
+  };
 
+  textFileNameChangeHandler = event => {
+    this.setState({ textFileName: event.target.value });
+  };
+
+  modalOkHandler = () => {
+    this.closeSaveFileModal();
+    this.saveFileHandler();
+    message.success(this.state.textFileName + ".txt is saved under /missions folder.");
+  };
+
+  modalCancelHandler = () => {
+    this.closeSaveFileModal();
   };
 
   render() {
     const icon = {
       url:
-        "https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Button_Icon_Red.svg/1024px-Button_Icon_Red.svg.png",
+        //"https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/Button_Icon_Red.svg/1024px-Button_Icon_Red.svg.png",
+        "./icons/red-circle.png",
       scaledSize: { width: 8, height: 8 }
     };
 
@@ -139,6 +162,8 @@ class Map extends Component {
               key={`marker-${idx}`}
               position={position}
               icon={icon}
+              draggable={true}
+              onDragend={this.onMarkerDragEnd}
               onClick={() => this.showMarkerDrawer(position)}
             />
           ))}
@@ -150,11 +175,29 @@ class Map extends Component {
             selectedPosition={this.state.selectedPosition}
           />
 
-          <input size="large" type="file" onChange={this.uploadFile}></input>
-          <Button size="large" onClick={this.saveFileHandler}>
+          <Input size="large" type="file" onChange={this.uploadFile}/>
+          <Button size="large" onClick={this.showSaveFileModal}>
             SAVE FILE
           </Button>
+
           <p>{this.state.textFileContent}</p>
+
+          <Modal
+            title="Filename"
+            visible={this.state.saveFileModalVisible}
+            onOk={this.modalOkHandler}
+            onCancel={this.modalCancelHandler}
+            width={300}
+          >
+            <Input
+              type="text"
+              addonAfter=".txt"
+              onChange={this.textFileNameChangeHandler}
+              value={this.state.textFileName}
+            />
+          </Modal>
+
+
         </GoogleMap>
       </div>
     );
