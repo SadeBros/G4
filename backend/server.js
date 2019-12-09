@@ -27,7 +27,7 @@ app.post("/", (req, res) => {
   });
 
   const filePath = "./missions/";
-  const fileName = "output.txt";
+  const fileName = req.body.textFileName + ".txt";
   const fullPath = filePath + fileName;
 
   fileContent = ['lat,lng',...fileContent];
