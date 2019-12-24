@@ -3,7 +3,8 @@ import {
   GoogleMap,
   withScriptjs,
   withGoogleMap,
-  Marker
+  Marker,
+  Circle
 } from "react-google-maps";
 
 import MarkerDrawer from "./Drawers/MarkerDrawer";
@@ -18,14 +19,76 @@ class Map extends Component {
     saveFileModalVisible: false,
     textFileName: "",
     textFileContent: null,
-    waitingForFileUpload: false
+    waitingForFileUpload: false,
+    randomPointsMarkerCenter: null, // {lat: 40.10083211269787, lng: 30.800708042517158}
+    randomPointsClicked: false,
+    randomPointsCircleRadius: 100
   };
 
-  addMarker = event => {
+  randomPointsClickHandler = event => {
+    this.setState({ randomPointsClicked: !this.state.randomPointsClicked });
+
+    if (this.state.randomPointsClicked) {
+      this.setState({
+        randomPointsMarkerCenter: null
+      });
+    }
+  };
+
+  generateRandomPoints = () => {
+    if(! this.state.randomPointsClicked){
+      alert("RandomPoints button must be clicked.");
+      return;
+    }
+
     const markers = [...this.state.markers];
+    let radiusInDegree = this.state.randomPointsCircleRadius / 111699;
+
+    let center = this.state.randomPointsMarkerCenter;
+
+    for (let i = 0; i < 10; i++) {
+      let latRand = Math.random() * radiusInDegree;
+      let lngRand = Math.random() * radiusInDegree;
+
+      let lat =
+        Math.random() >= 0.5 ? center.lat + latRand : center.lat - latRand;
+      let lng =
+        Math.random() >= 0.5 ? center.lng + lngRand : center.lng - lngRand;
+
+      let coordinate = { lat: lat, lng: lng };
+      markers.push(coordinate);
+
+      this.setState({ markers: markers });
+    }
+  };
+
+  // measure = (lat1, lon1, lat2, lon2) => {
+  //   var R = 6378.137; // Radius of earth in KM
+  //   var dLat = (lat2 * Math.PI) / 180 - (lat1 * Math.PI) / 180;
+  //   var dLon = (lon2 * Math.PI) / 180 - (lon1 * Math.PI) / 180;
+  //   var a =
+  //     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+  //     Math.cos((lat1 * Math.PI) / 180) *
+  //       Math.cos((lat2 * Math.PI) / 180) *
+  //       Math.sin(dLon / 2) *
+  //       Math.sin(dLon / 2);
+  //   var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  //   var d = R * c;
+  //   return d * 1000; // meters
+  // };
+
+  addMarker = event => {
     let coordinate = { lat: event.latLng.lat(), lng: event.latLng.lng() };
-    markers.push(coordinate);
-    this.setState({ markers: markers });
+
+    if (this.state.randomPointsClicked) {
+      this.setState({
+        randomPointsMarkerCenter: coordinate
+      });
+    } else {
+      const markers = [...this.state.markers];
+      markers.push(coordinate);
+      this.setState({ markers: markers });
+    }
   };
 
   deleteMarker = pos => {
@@ -88,7 +151,9 @@ class Map extends Component {
 
     // Uploads will push to the file input's `.files` array. Get the last uploaded file.
     const latestUploadedFile = fileList.item(fileList.length - 1);
-    this.setState({textFileName: latestUploadedFile.name.replace('.txt', '')});
+    this.setState({
+      textFileName: latestUploadedFile.name.replace(".txt", "")
+    });
 
     try {
       const fileContents = await Map.readUploadedFileAsText(latestUploadedFile);
@@ -101,6 +166,26 @@ class Map extends Component {
       console.log(e);
       this.setState({
         waitingForFileUpload: false
+      });
+    }
+  };
+
+  onMarkerPositionChanged = (e, idx, type) => {
+    if (type === "markers") {
+      const { markers } = this.state;
+
+      markers[idx].lat = e.latLng.lat();
+      markers[idx].lng = e.latLng.lng();
+
+      this.setState({ markers: markers });
+    } else if (type === "randomPointsMarker") {
+      const { randomPointsMarkerCenter } = this.state;
+
+      randomPointsMarkerCenter.lat = e.latLng.lat();
+      randomPointsMarkerCenter.lng = e.latLng.lng();
+
+      this.setState({
+        randomPointsMarkerCenter: randomPointsMarkerCenter
       });
     }
   };
@@ -135,11 +220,22 @@ class Map extends Component {
   modalOkHandler = () => {
     this.closeSaveFileModal();
     this.saveFileHandler();
-    message.success(this.state.textFileName + ".txt is saved under /missions folder.");
+    message.success(
+      this.state.textFileName + ".txt is saved under /missions folder."
+    );
   };
 
   modalCancelHandler = () => {
     this.closeSaveFileModal();
+  };
+
+  updateRadius = () => {
+    const radius = this.map.getRadius();
+    this.setState({ randomPointsCircleRadius: radius });
+  };
+
+  mapMounted = ref => {
+    this.map = ref;
   };
 
   render() {
@@ -163,10 +259,35 @@ class Map extends Component {
               position={position}
               icon={icon}
               draggable={true}
-              onDragend={this.onMarkerDragEnd}
+              onDrag={e => this.onMarkerPositionChanged(e, idx, "markers")}
               onClick={() => this.showMarkerDrawer(position)}
             />
           ))}
+
+          {this.state.randomPointsMarkerCenter != null ? (
+            <div>
+              <Marker
+                key={`marker-randomPoints`}
+                position={this.state.randomPointsMarkerCenter}
+                draggable={true}
+                onDrag={e =>
+                  this.onMarkerPositionChanged(e, 0, "randomPointsMarker")
+                }
+              />
+
+              <Circle
+                ref={this.mapMounted.bind(this)}
+                center={this.state.randomPointsMarkerCenter}
+                radius={this.state.randomPointsCircleRadius}
+                editable={true}
+                onRadiusChanged={e => this.updateRadius(e)}
+                options={{
+                  fillColor: "#f00",
+                  strokeColor: "#f00"
+                }}
+              ></Circle>
+            </div>
+          ) : null}
 
           <MarkerDrawer
             close={this.closeMarkerDrawer}
@@ -175,9 +296,21 @@ class Map extends Component {
             selectedPosition={this.state.selectedPosition}
           />
 
-          <Input size="large" type="file" onChange={this.uploadFile}/>
+          <Input size="large" type="file" onChange={this.uploadFile} />
           <Button size="large" onClick={this.showSaveFileModal}>
             SAVE FILE
+          </Button>
+
+          <Button
+            size="large"
+            onClick={this.randomPointsClickHandler}
+            className={this.state.randomPointsClicked ? "ant-btn-danger" : null}
+          >
+            RandomPoints
+          </Button>
+
+          <Button size="large" onClick={this.generateRandomPoints}>
+            Generate Random Points
           </Button>
 
           <p>{this.state.textFileContent}</p>
@@ -196,8 +329,6 @@ class Map extends Component {
               value={this.state.textFileName}
             />
           </Modal>
-
-
         </GoogleMap>
       </div>
     );
@@ -207,3 +338,8 @@ class Map extends Component {
 const GoogleMapComp = withScriptjs(withGoogleMap(Map));
 
 export default GoogleMapComp;
+
+// https://stackoverflow.com/questions/639695/how-to-convert-latitude-or-longitude-to-meters
+// https://stackoverflow.com/questions/58568085/can-not-get-radius-value-from-editable-circle-onradiuschanged-event
+// https://stackoverflow.com/questions/53248165/cant-set-state-when-onradiuschanged
+// https://gis.stackexchange.com/questions/142326/calculating-longitude-length-in-miles
